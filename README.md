@@ -1,5 +1,12 @@
 # TRMNL Anki
 
+# FORKED TO PUSH ALL NOTES AT ONCE
+
+I didn't want Anki running in background all the time. So I modified the code to push all notes at once, and then let BYOS-TRMNL to randomly select one to show. Works for me to show my leeches throughout the day.
+
+
+## Original description
+
 TRMNL Anki is an Anki add-on / TRMNL plugin combination that allows a TRMNL to display your [Anki](https://apps.ankiweb.net/) flashcards. It supports multiple instances and mashups. It requires a [TRMNL](https://usetrmnl.com/?ref=justthomas) with developer edition.
 
 ![Screenshot of TRMNL mashups with two instances of TRMNL Anki](https://raw.githubusercontent.com/ItsJustThomas/trmnl-anki/refs/heads/main/example.jpg)
