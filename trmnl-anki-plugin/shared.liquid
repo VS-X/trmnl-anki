@@ -1,15 +1,9 @@
+<div class="view view--{{ size }}">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
-{% assign anki_id = "anki-" | append_random %}
-<style>
-  #{{ anki_id }} .content > :first-child {
-    font-size: 1.5rem;
-    line-height: 1.5rem;
-  }
-</style>
 
-<div class="layout layout--col" id="{{ anki_id }}">
+<div class="layout layout--col" id="anki">
   <div class="richtext richtext--center gap--large" data-overflow="true">
-    <div data-content-limiter="true" class="markdown content content--center gap text--center pt--1">
+    <div id="note" data-content-limiter="true" class="markdown content content--center gap text--center pt--1">
     </div>
   </div>
 </div>
@@ -17,7 +11,7 @@
 <div class="title_bar">
   <img class="image" src="https://usetrmnl.com/images/plugins/trmnl--render.svg">
   <span class="title">{{ trmnl.plugin_settings.instance_name }}</span>
-  <span class="instance">Created on: {{ note_id | divided_by: 1000 | plus: trmnl.user.utc_offset | date: '%b %d, %Y' }}</span>
+  {% comment %} <span class="instance">Created on: {{ note_id | divided_by: 1000 | plus: trmnl.user.utc_offset | date: '%b %d, %Y' }}</span> {% endcomment %}
 </div>
 
 <script>
@@ -42,26 +36,31 @@
       return decoder.decode(decompressedBytes);
     }
 
-    function populate(data, instance) {
+    function populate(data) {
       const decompressedData = JSON.parse(decompressText(data));
-      console.log(JSON.stringify(decompressedData));
-      const instanceDiv = document.getElementById(instance)
-      const mainContainer = instanceDiv.querySelector(`.content`);
-      Object.entries(decompressedData).forEach(([key, value]) => {
+      const mainContainer = document.getElementById('note')
+      const note = decompressedData[Math.floor(Math.random() * decompressedData.length)];
+
+      Object.entries(note).forEach(([key, value]) => {
         if (!value) {
           return;
         }
-        console.log(`${key} ${value}`);
         const el = document.createElement("span");
         // We intentionally don't escape the value since anki fields can contain styled HTML
         el.innerHTML = value;
+        el.setAttribute("data-value-fit", "true");
+        el.setAttribute("data-value-fit-max-height", "340");
         mainContainer.appendChild(el);
       });
-      mainContainer.firstElementChild?.setAttribute("data-value-fit", "true");
-      mainContainer.firstElementChild?.setAttribute("data-value-fit-max-height", "340");
+      const front = mainContainer.children[0];
+      const back = mainContainer.children[1];
+      const info = mainContainer.children[2];
 
-      const noteTimestamp = instanceDiv.querySelector(`.note-id`);
+      front.classList.add("value","value--large");
+      back.classList.add("value");
+      info?.classList.add("value");
     }
-    populate("{{ compressed }}", "{{ anki_id }}");
+    populate("{{ notes }}");
   });
 </script>
+</div>

@@ -95,61 +95,46 @@ class TRMNLPlugin:
     def __init__(self, config: TRMNLPluginConfig):
         self.config = config
         logger.info("Initializing TRMNLPlugin with config: %s", self.config)
-
-    def get_new_note(self, col: anki.collection.Collection) -> Note:
-        notes = col.find_notes(query=self.config.search_query)
-        if not notes:
-            raise ConfigException(
-                "TRMNL Anki: No notes found with the search query",
-                ("search_query", self.config.search_query)
-            )
-
-        note = col.get_note(random.choice(notes))
-        logger.info("Selected note: %s", note.id)
-
-        return note
-
-    def call_webhook(self, note: Note) -> requests.Response:
-        note_data = dict(note.items())
-
-        populated_kwargs = {
-            visible_field: note_data[visible_field]
-            for visible_field in self.config.visible_fields
-            if visible_field in note_data.keys()
-        }
-
-        logger.info("Finalized note data: %s", populated_kwargs)
-
-        # TODO: Check payload size before sending? (Max 2kb for TRMNL's servers)
-        payload = {"compressed": compress_text(json.dumps(populated_kwargs))}
-
-        # Example webhook call
-        # curl "https://usetrmnl.com/api/custom_plugins/asdfqwerty1234" \
-        #   -H "Content-Type: application/json" \
-        #   -d '{"merge_variables": {"term":"foobar"}}' \
-        #   -X POST
-        response = session.post(
-            self.config.webhook, json={'merge_variables': {'note_id': note.id, **payload}}
-        )
-        logger.info(f"{response.status_code}: {response.reason} {response.text}")
-        return response
-
+    
     def refresh_trmnl_plugin(self) -> requests.Response:
-        """
-        Returns:
-            requests.Response: Response from the webhook call
-        """
         if not mw.col:
-            raise Exception(f"TRMNL Anki: Anki collection is not initialized (how did you get here?)")
+            raise Exception("TRMNL Anki: Anki collection is not initialized")
 
-        note = self.get_new_note(mw.col)
         if not self.config.webhook:
             raise ConfigException(
                 "TRMNL Anki: No webhook url given to TRMNL",
                 ("webhook", self.config.webhook)
             )
-        return self.call_webhook(note)
 
+        note_ids = mw.col.find_notes(query=self.config.search_query)
+        if not note_ids:
+            raise ConfigException(
+                "TRMNL Anki: No notes found with the search query",
+                ("search_query", self.config.search_query)
+            )
+
+        notes = [mw.col.get_note(nid) for nid in note_ids]
+
+        # Build a list of visible fields for all notes
+        all_notes_payload = []
+        for note in notes:
+            note_data = dict(note.items())
+            visible = {
+                field: note_data[field]
+                for field in self.config.visible_fields
+                if field in note_data
+            }
+            all_notes_payload.append(visible)
+
+        compressed = compress_text(json.dumps(all_notes_payload))
+
+        response = session.post(
+            self.config.webhook,
+            json={"merge_variables": {"notes": compressed}}
+        )
+
+        logger.info(f"{response.status_code}: {response.reason} {response.text}")
+        return response
 
 class TRMNLAnki:
     config: Config
